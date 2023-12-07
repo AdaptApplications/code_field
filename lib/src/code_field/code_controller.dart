@@ -32,11 +32,11 @@ class CodeController extends TextEditingController {
     notifyListeners();
   }
 
+  /// A map of specific keywords to style
+  Map<String, TextStyle>? stringMap;
+
   /// A map of specific regexes to style
   final Map<String, TextStyle>? patternMap;
-
-  /// A map of specific keywords to style
-  final Map<String, TextStyle>? stringMap;
 
   /// Common editor params such as the size of a tab in spaces
   ///
@@ -148,14 +148,12 @@ class CodeController extends TextEditingController {
 
     if (autoComplete?.isShowing ?? false) {
       if (event.isKeyPressed(LogicalKeyboardKey.arrowDown)) {
-        autoComplete!.current =
-            (autoComplete!.current + 1) % autoComplete!.options.length;
+        autoComplete!.current = (autoComplete!.current + 1) % autoComplete!.options.length;
         autoComplete!.panelSetState?.call(() {});
         return KeyEventResult.handled;
       }
       if (event.isKeyPressed(LogicalKeyboardKey.arrowUp)) {
-        autoComplete!.current =
-            (autoComplete!.current - 1) % autoComplete!.options.length;
+        autoComplete!.current = (autoComplete!.current - 1) % autoComplete!.options.length;
         autoComplete!.panelSetState?.call(() {});
         return KeyEventResult.handled;
       }
@@ -213,11 +211,7 @@ class CodeController extends TextEditingController {
         }
 
         int idx;
-        for (idx = 1;
-            idx < m.groupCount &&
-                idx <= _styleList.length &&
-                m.group(idx) == null;
-            idx++) {}
+        for (idx = 1; idx < m.groupCount && idx <= _styleList.length && m.group(idx) == null; idx++) {}
 
         children.add(TextSpan(
           text: m[0],
