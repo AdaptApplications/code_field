@@ -167,11 +167,6 @@ class CodeController extends TextEditingController {
   }
 
   KeyEventResult onKey(RawKeyEvent event) {
-    if (event.isKeyPressed(LogicalKeyboardKey.tab)) {
-      text = text.replaceRange(selection.start, selection.end, '\t');
-      return KeyEventResult.handled;
-    }
-
     if (autoComplete?.isShowing ?? false) {
       if (event.isKeyPressed(LogicalKeyboardKey.arrowDown)) {
         autoComplete!.current = (autoComplete!.current + 1) % autoComplete!.options.length;
@@ -187,10 +182,19 @@ class CodeController extends TextEditingController {
         autoComplete!.selectCurrent();
         return KeyEventResult.handled;
       }
+      if (event.isKeyPressed(LogicalKeyboardKey.tab)) {
+        autoComplete!.selectCurrent();
+        return KeyEventResult.handled;
+      }
       if (event.isKeyPressed(LogicalKeyboardKey.escape)) {
         autoComplete!.hide();
         return KeyEventResult.handled;
       }
+    }
+
+    if (event.isKeyPressed(LogicalKeyboardKey.tab)) {
+      text = text.replaceRange(selection.start, selection.end, '\t');
+      return KeyEventResult.handled;
     }
 
     return KeyEventResult.ignored;
