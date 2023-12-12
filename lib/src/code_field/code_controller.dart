@@ -32,11 +32,45 @@ class CodeController extends TextEditingController {
     notifyListeners();
   }
 
+  Map<String, TextStyle>? _stringMap;
+
   /// A map of specific keywords to style
-  Map<String, TextStyle>? stringMap;
+  Map<String, TextStyle>? get stringMap => _stringMap;
+
+  set stringMap(Map<String, TextStyle>? stringMap) {
+    // Build styleRegExp
+    final patternList = <String>[];
+    if (stringMap != null) {
+      patternList.addAll(stringMap.keys.map((e) => r'(\b' + e + r'\b)'));
+      _styleList.addAll(stringMap.values);
+    }
+    if (patternMap != null) {
+      patternList.addAll(patternMap!.keys.map((e) => '($e)'));
+      _styleList.addAll(patternMap!.values);
+    }
+    _styleRegExp = RegExp(patternList.join('|'), multiLine: true);
+    notifyListeners();
+  }
+
+  Map<String, TextStyle>? _patternMap;
 
   /// A map of specific regexes to style
-  final Map<String, TextStyle>? patternMap;
+  Map<String, TextStyle>? get patternMap => _patternMap;
+
+  set patternMap(Map<String, TextStyle>? patternMap) {
+    // Build styleRegExp
+    final patternList = <String>[];
+    if (stringMap != null) {
+      patternList.addAll(stringMap!.keys.map((e) => r'(\b' + e + r'\b)'));
+      _styleList.addAll(stringMap!.values);
+    }
+    if (patternMap != null) {
+      patternList.addAll(patternMap.keys.map((e) => '($e)'));
+      _styleList.addAll(patternMap.values);
+    }
+    _styleRegExp = RegExp(patternList.join('|'), multiLine: true);
+    notifyListeners();
+  }
 
   /// Common editor params such as the size of a tab in spaces
   ///
@@ -59,8 +93,8 @@ class CodeController extends TextEditingController {
     Mode? language,
     // @Deprecated('Use CodeTheme widget to provide theme to CodeField.')
     //     Map<String, TextStyle>? theme,
-    this.patternMap,
-    this.stringMap,
+    patternMap,
+    stringMap,
     this.params = const EditorParams(),
     this.modifiers = const [
       IndentModifier(),
@@ -75,17 +109,9 @@ class CodeController extends TextEditingController {
       _modifierMap[el.char] = el;
     }
 
-    // Build styleRegExp
-    final patternList = <String>[];
-    if (stringMap != null) {
-      patternList.addAll(stringMap!.keys.map((e) => r'(\b' + e + r'\b)'));
-      _styleList.addAll(stringMap!.values);
-    }
-    if (patternMap != null) {
-      patternList.addAll(patternMap!.keys.map((e) => '($e)'));
-      _styleList.addAll(patternMap!.values);
-    }
-    _styleRegExp = RegExp(patternList.join('|'), multiLine: true);
+    // set string map
+    stringMap = stringMap;
+    patternMap = patternMap;
   }
 
   /// Sets a specific cursor position in the text
@@ -158,7 +184,7 @@ class CodeController extends TextEditingController {
         return KeyEventResult.handled;
       }
       if (event.isKeyPressed(LogicalKeyboardKey.enter)) {
-        autoComplete!.writeCurrent();
+        autoComplete!.selectCurrent();
         return KeyEventResult.handled;
       }
       if (event.isKeyPressed(LogicalKeyboardKey.escape)) {

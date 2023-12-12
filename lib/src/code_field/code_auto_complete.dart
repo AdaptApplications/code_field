@@ -10,8 +10,7 @@ class CodeAutoComplete<T> {
   List<T> Function(String, int cursorIndex, Mode?) optionsBuilder;
 
   /// depends on your options, you can create your own item widget.
-  final Widget Function(BuildContext, T, bool, Function(String) onTap)
-      itemBuilder;
+  final Widget Function(BuildContext, T, bool, Function(T) onTap) itemBuilder;
 
   /// set the tip panel size.
   final BoxConstraints constraints;
@@ -42,6 +41,8 @@ class CodeAutoComplete<T> {
   final StreamController streamController = StreamController.broadcast();
   Stream get stream => streamController.stream;
 
+  void Function(T option)? onSelected;
+
   CodeAutoComplete({
     required this.optionsBuilder,
     required this.itemBuilder,
@@ -49,6 +50,7 @@ class CodeAutoComplete<T> {
     this.constraints = const BoxConstraints(maxHeight: 300, maxWidth: 240),
     this.backgroundColor,
     this.optionValue,
+    this.onSelected,
   });
 
   OverlayEntry? panelOverlay;
@@ -79,10 +81,7 @@ class CodeAutoComplete<T> {
             widget.controller.language,
           );
           if (!focusNode.hasFocus || options.isEmpty) return const Offstage();
-          if (snapshot.hasData &&
-              snapshot.data != true &&
-              snapshot.data != null &&
-              '${snapshot.data}'.isNotEmpty) {
+          if (snapshot.hasData && snapshot.data != true && snapshot.data != null && '${snapshot.data}'.isNotEmpty) {
             isShowing = true;
             return panelWrap(codeFieldContext, wdg, focusNode);
           } else {
@@ -101,12 +100,21 @@ class CodeAutoComplete<T> {
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: options
-            .map((tip) => itemBuilder(
-                context, tip, current == options.indexOf(tip), write))
-            .toList(),
+        children: options.map((tip) => itemBuilder(context, tip, current == options.indexOf(tip), select)).toList(),
       ),
     );
+  }
+
+  void select(T option) {
+    write(optionValue?.call(options[current]) ?? options[current].toString());
+    onSelected?.call(option);
+    hide();
+  }
+
+  void selectCurrent() {
+    if (options.isNotEmpty) {
+      select(options[current]);
+    }
   }
 
   /// write the text to code field.
@@ -114,21 +122,10 @@ class CodeAutoComplete<T> {
     var offset = widget.controller.selection.baseOffset;
     int start = repeatCount(widget.controller.text.substring(0, offset), text);
     widget.controller
-      ..text = widget.controller.text.replaceRange(
-          widget.controller.selection.baseOffset - start,
-          widget.controller.selection.baseOffset,
-          text)
-      ..selection = TextSelection.fromPosition(
-          TextPosition(offset: offset + text.length - start));
+      ..text = widget.controller.text.replaceRange(widget.controller.selection.baseOffset - start, widget.controller.selection.baseOffset, text)
+      ..selection = TextSelection.fromPosition(TextPosition(offset: offset + text.length - start));
     widget.onChanged?.call(widget.controller.text);
     hide();
-  }
-
-  /// write the current item text to code field.
-  void writeCurrent() {
-    if (options.isNotEmpty) {
-      write(optionValue?.call(options[current]) ?? options[current].toString());
-    }
   }
 
   /// get the repeat count of pre word and tip word.
@@ -146,8 +143,7 @@ class CodeAutoComplete<T> {
   }
 
   /// get the panel offset through the cursor offset.
-  Offset cursorOffset(
-      BuildContext context, CodeField widget, FocusNode focusNode) {
+  Offset cursorOffset(BuildContext context, CodeField widget, FocusNode focusNode) {
     var s = widget.controller.text;
     TextStyle textStyle = widget.textStyle ?? const TextStyle();
     textStyle = textStyle.copyWith(
@@ -169,9 +165,7 @@ class CodeAutoComplete<T> {
       ),
     )..layout();
 
-    return Offset(focusNode.offset.dx + hpainter.width,
-            focusNode.offset.dy + painter.height) +
-        (offset ?? Offset.zero);
+    return Offset(focusNode.offset.dx + hpainter.width, focusNode.offset.dy + painter.height) + (offset ?? Offset.zero);
   }
 
   /// the style widget of tip panel.
