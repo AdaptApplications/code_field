@@ -14,7 +14,7 @@ class CodeField extends StatefulWidget {
   /// {@macro flutter.widgets.textField.smartQuotesType}
   final SmartQuotesType? smartQuotesType;
 
-/// {@macro flutter.widgets.textField.smartDashesType}
+  /// {@macro flutter.widgets.textField.smartDashesType}
   final SmartDashesType? smartDashesType;
 
   /// {@macro flutter.widgets.textField.keyboardType}
@@ -142,9 +142,11 @@ class _CodeFieldState extends State<CodeField> {
   }
 
   void createAutoComplate() {
-    widget.autoComplete?.show(context, widget, _focusNode!);
-    widget.controller.autoComplete = widget.autoComplete;
-    _codeScroll?.addListener(hideAutoComplete);
+    if (mounted) {
+      widget.autoComplete?.show(context, widget, _focusNode!);
+      widget.controller.autoComplete = widget.autoComplete;
+      _codeScroll?.addListener(hideAutoComplete);
+    }
   }
 
   KeyEventResult _onKey(FocusNode node, RawKeyEvent event) {
@@ -225,8 +227,7 @@ class _CodeFieldState extends State<CodeField> {
       scrollDirection: Axis.horizontal,
 
       /// Prevents the horizontal scroll if horizontalScroll is false
-      physics:
-          widget.horizontalScroll ? null : const NeverScrollableScrollPhysics(),
+      physics: widget.horizontalScroll ? null : const NeverScrollableScrollPhysics(),
       child: intrinsic,
     );
   }
@@ -247,8 +248,7 @@ class _CodeFieldState extends State<CodeField> {
     final defaultText = Colors.grey.shade200;
 
     final styles = CodeTheme.of(context)?.styles;
-    Color? backgroundCol =
-        widget.background ?? styles?[rootKey]?.backgroundColor ?? defaultBg;
+    Color? backgroundCol = widget.background ?? styles?[rootKey]?.backgroundColor ?? defaultBg;
 
     if (widget.decoration != null) {
       backgroundCol = null;
@@ -260,10 +260,8 @@ class _CodeFieldState extends State<CodeField> {
       fontSize: textStyle.fontSize ?? 16.0,
     );
 
-    TextStyle numberTextStyle =
-        widget.lineNumberStyle.textStyle ?? const TextStyle();
-    final numberColor =
-        (styles?[rootKey]?.color ?? defaultText).withOpacity(0.7);
+    TextStyle numberTextStyle = widget.lineNumberStyle.textStyle ?? const TextStyle();
+    final numberColor = (styles?[rootKey]?.color ?? defaultText).withOpacity(0.7);
 
     // Copy important attributes
     numberTextStyle = numberTextStyle.copyWith(
@@ -272,8 +270,7 @@ class _CodeFieldState extends State<CodeField> {
       fontFamily: textStyle.fontFamily,
     );
 
-    final cursorColor =
-        widget.cursorColor ?? styles?[rootKey]?.color ?? defaultText;
+    final cursorColor = widget.cursorColor ?? styles?[rootKey]?.color ?? defaultText;
 
     TextField? lineNumberCol;
     Container? numberCol;
@@ -355,9 +352,7 @@ class _CodeFieldState extends State<CodeField> {
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           // Control horizontal scrolling
-          return widget.wrap
-              ? codeField
-              : _wrapInScrollView(codeField, textStyle, constraints.maxWidth);
+          return widget.wrap ? codeField : _wrapInScrollView(codeField, textStyle, constraints.maxWidth);
         },
       ),
     );
