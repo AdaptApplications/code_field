@@ -9,6 +9,7 @@ import '../code_modifiers/tab_code_modifier.dart';
 import '../code_theme/code_theme.dart';
 import '../code_theme/code_theme_data.dart';
 import 'code_auto_complete.dart';
+import 'code_highlight_block.dart';
 import 'editor_params.dart';
 
 class CodeController extends TextEditingController {
@@ -30,6 +31,15 @@ class CodeController extends TextEditingController {
 
     _language = language;
     notifyListeners();
+  }
+
+  List<CodeHighlightBlock>? _highlightBlocks = [];
+
+  /// A list of specific blocks to style
+  List<CodeHighlightBlock>? get highlightBlocks => _highlightBlocks;
+
+  set highlightBlocks(List<CodeHighlightBlock>? highlightBlocks) {
+    _highlightBlocks = highlightBlocks;
   }
 
   Map<String, TextStyle>? _stringMap;
@@ -95,6 +105,7 @@ class CodeController extends TextEditingController {
     //     Map<String, TextStyle>? theme,
     patternMap,
     stringMap,
+    highlightBlocks,
     this.params = const EditorParams(),
     this.modifiers = const [
       IndentModifier(),
@@ -112,6 +123,7 @@ class CodeController extends TextEditingController {
     // set string map
     stringMap = stringMap;
     patternMap = patternMap;
+    this.highlightBlocks = highlightBlocks;
   }
 
   /// Sets a specific cursor position in the text
@@ -311,6 +323,31 @@ class CodeController extends TextEditingController {
     return TextSpan(style: style, children: children);
   }
 
+  TextSpan _processHighlightBlocks(String text, CodeThemeData? widgetTheme, TextStyle style) {
+    final children = <TextSpan>[];
+    final blocks = _highlightBlocks;
+    final orderedBlocks = blocks!.toList()..sort((a, b) => a.startPosition.compareTo(b.startPosition));
+
+    int currentPosition = 0;
+    for (final block in orderedBlocks) {
+      final blockStart = block.startPosition;
+      final blockEnd = block.endPosition;
+      final textStyle = block.textStyle;
+
+      if (blockStart < 0 || blockEnd < 0 || blockStart > blockEnd || blockEnd > text.length) {
+        continue;
+      }
+
+      children
+        ..add(_processLanguage(text.substring(currentPosition, blockStart), widgetTheme, style))
+        ..add(TextSpan(text: text.substring(blockStart, blockEnd), style: textStyle));
+      currentPosition = blockEnd;
+    }
+    children.add(_processLanguage(text.substring(currentPosition), widgetTheme, style));
+
+    return TextSpan(style: style, children: children);
+  }
+
   @override
   TextSpan buildTextSpan({
     required BuildContext context,
@@ -318,6 +355,9 @@ class CodeController extends TextEditingController {
     bool? withComposing,
   }) {
     // Return parsing
+    if (_highlightBlocks != null) {
+      return _processHighlightBlocks(text, CodeTheme.of(context), style!);
+    }
     if (_language != null) {
       return _processLanguage(text, CodeTheme.of(context), style);
     }

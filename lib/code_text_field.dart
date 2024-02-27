@@ -1,6 +1,7 @@
 export 'src/code_field/code_auto_complete.dart';
 export 'src/code_field/code_controller.dart';
 export 'src/code_field/code_field.dart';
+export 'src/code_field/code_highlight_block.dart';
 export 'src/code_field/editor_params.dart';
 
 export 'src/code_modifiers/close_block_code_modifier.dart';
