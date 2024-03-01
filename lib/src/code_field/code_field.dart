@@ -9,6 +9,7 @@ import '../line_numbers/line_number_controller.dart';
 import '../line_numbers/line_number_style.dart';
 import 'code_auto_complete.dart';
 import 'code_controller.dart';
+import 'custom_scroll_behaviour.dart';
 
 class CodeField extends StatefulWidget {
   /// {@macro flutter.widgets.textField.smartQuotesType}
@@ -70,6 +71,8 @@ class CodeField extends StatefulWidget {
   final void Function()? onTap;
   final bool lineNumbers;
   final bool horizontalScroll;
+  final ScrollController? horizontalScrollController;
+  final bool horizontalScrollBar;
   final String? hintText;
   final TextStyle? hintStyle;
   final CodeAutoComplete? autoComplete;
@@ -100,6 +103,8 @@ class CodeField extends StatefulWidget {
     this.keyboardType,
     this.lineNumbers = true,
     this.horizontalScroll = true,
+    this.horizontalScrollController,
+    this.horizontalScrollBar = false,
     this.selectionControls,
     this.hintText,
     this.hintStyle,
@@ -115,6 +120,7 @@ class _CodeFieldState extends State<CodeField> {
   LinkedScrollControllerGroup? _controllers;
   ScrollController? _numberScroll;
   ScrollController? _codeScroll;
+  late ScrollController _horizontalScrollController;
   LineNumberController? _numberController;
 
   StreamSubscription<bool>? _keyboardVisibilitySubscription;
@@ -129,6 +135,7 @@ class _CodeFieldState extends State<CodeField> {
     _numberScroll = _controllers?.addAndGet();
     _codeScroll = _controllers?.addAndGet();
     _numberController = LineNumberController(widget.lineNumberBuilder);
+    _horizontalScrollController = widget.horizontalScrollController ?? ScrollController();
     widget.controller.addListener(_onTextChanged);
     _focusNode = widget.focusNode ?? FocusNode();
     _focusNode!.onKey = _onKey;
@@ -198,6 +205,11 @@ class _CodeFieldState extends State<CodeField> {
     TextStyle textStyle,
     double minWidth,
   ) {
+    final scrollConfig = ScrollConfiguration(
+      behavior: const CustomScrollBehavior(),
+      child: codeField,
+    );
+
     final leftPad = widget.lineNumberStyle.margin / 2;
     final intrinsic = IntrinsicWidth(
       child: Column(
@@ -214,22 +226,45 @@ class _CodeFieldState extends State<CodeField> {
               child: Text(longestLine, style: textStyle),
             ), // Add extra padding
           ),
-          widget.expands ? Expanded(child: codeField) : codeField,
+          widget.expands ? Expanded(child: scrollConfig) : scrollConfig,
         ],
       ),
     );
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: leftPad,
-        right: widget.padding.right,
-      ),
-      scrollDirection: Axis.horizontal,
+    Widget scrollView = Padding(
+      padding: widget.isDense ? const EdgeInsets.fromLTRB(0, 8, 0, 8) : const EdgeInsets.fromLTRB(0, 12, 0, 12),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          left: leftPad,
+          right: widget.padding.right,
+        ),
+        scrollDirection: Axis.horizontal,
+        controller: _horizontalScrollController,
 
-      /// Prevents the horizontal scroll if horizontalScroll is false
-      physics: widget.horizontalScroll ? null : const NeverScrollableScrollPhysics(),
-      child: intrinsic,
+        /// Prevents the horizontal scroll if horizontalScroll is false
+        physics: widget.horizontalScroll ? null : const NeverScrollableScrollPhysics(),
+        child: intrinsic,
+      ),
     );
+
+    var vertScrollbar = Scrollbar(
+      controller: _codeScroll,
+      thumbVisibility: true,
+      scrollbarOrientation: ScrollbarOrientation.right,
+      notificationPredicate: (notif) => notif.depth == 1,
+      child: scrollView,
+    );
+
+    if (widget.horizontalScrollBar) {
+      return Scrollbar(
+        controller: _horizontalScrollController,
+        thumbVisibility: true,
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: vertScrollbar,
+      );
+    } else {
+      return vertScrollbar;
+    }
   }
 
   void removeAutoComplete() {
@@ -291,6 +326,7 @@ class _CodeFieldState extends State<CodeField> {
         decoration: InputDecoration(
           disabledBorder: InputBorder.none,
           isDense: widget.isDense,
+          isCollapsed: true,
         ),
         textAlign: widget.lineNumberStyle.textAlign,
       );
@@ -302,7 +338,13 @@ class _CodeFieldState extends State<CodeField> {
           right: widget.lineNumberStyle.margin / 2,
         ),
         color: widget.lineNumberStyle.background,
-        child: lineNumberCol,
+        child: ScrollConfiguration(
+          behavior: const CustomScrollBehavior(),
+          child: Padding(
+            padding: widget.isDense ? const EdgeInsets.fromLTRB(0, 8, 0, 8) : const EdgeInsets.fromLTRB(0, 12, 0, 12),
+            child: lineNumberCol,
+          ),
+        ),
       );
     }
 
@@ -323,6 +365,7 @@ class _CodeFieldState extends State<CodeField> {
       maxLines: widget.maxLines,
       expands: widget.expands,
       scrollController: _codeScroll,
+      scrollPhysics: const ScrollPhysics(),
       decoration: InputDecoration(
         disabledBorder: InputBorder.none,
         border: InputBorder.none,
@@ -330,6 +373,7 @@ class _CodeFieldState extends State<CodeField> {
         isDense: widget.isDense,
         hintText: widget.hintText,
         hintStyle: widget.hintStyle,
+        isCollapsed: true,
       ),
       onTapOutside: (e) {
         Future.delayed(const Duration(milliseconds: 300), hideAutoComplete);
